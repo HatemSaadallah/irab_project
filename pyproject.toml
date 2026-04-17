@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "irab_tashkeel"
+version = "0.1.0"
+description = "I'rab-guided Arabic diacritization with explainability"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [{name = "Hatem"}]
+
+dependencies = [
+    "torch>=2.0",
+    "numpy>=1.26,<2.0",
+    "pandas>=2.2,<2.3",
+    "pyyaml>=6.0",
+    "pyarabic>=0.6",
+    "tqdm>=4.60",
+    "huggingface_hub>=0.20",
+    "datasets>=2.14",
+    "tensorboard>=2.10",
+    "scikit-learn>=1.0",
+]
+
+[project.optional-dependencies]
+camel = ["camel-tools"]
+dev = ["pytest>=7.0", "pytest-cov", "ruff", "ipython", "jupyter"]
+app = ["streamlit>=1.38"]
+
+[project.scripts]
+irab-train = "irab_tashkeel.training.cli:main"
+irab-eval = "irab_tashkeel.evaluation.eval_cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

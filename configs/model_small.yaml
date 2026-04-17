@@ -1,0 +1,43 @@
+# Small model for CPU development and quick iteration.
+# ~5M params. Use this to verify the pipeline works before committing to GPU time.
+
+model:
+  hidden: 256
+  n_heads: 8
+  n_layers: 6
+  max_len: 256
+  dropout: 0.1
+
+heads:
+  # n_diac, n_irab, n_err are pulled from labels.py automatically
+  dropout: 0.1
+
+loss:
+  alpha_diac: 1.0
+  beta_irab: 0.5
+  gamma_err: 0.3
+  label_smoothing: 0.1
+
+data:
+  tashkeela_n: 3000          # small for quick runs
+  qac_max_verses: null        # use all 6236 QAC verses
+  i3rab_path: null            # auto-fallback to demo
+  synthetic_per_type: 500
+  data_dir: data
+
+training:
+  batch_size: 32
+  learning_rate: 3.0e-4
+  weight_decay: 0.01
+  n_epochs: 5
+  warmup_steps: 300
+  gradient_clip: 1.0
+  mixed_precision: none       # CPU-friendly
+  num_workers: 2
+  seed: 42
+  log_every_n_steps: 50
+
+evaluation:
+  val_split: 0.1
+  eval_every_n_steps: 1000
+  early_stopping_patience: 2

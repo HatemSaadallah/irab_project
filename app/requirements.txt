@@ -1,0 +1,14 @@
+# HF Spaces Streamlit app dependencies.
+# irab_tashkeel itself is installed as editable (via the Space's Dockerfile or
+# by placing the package in the Space repo). If deploying from a Space that
+# only has the app/ directory, install from the main repo instead.
+
+streamlit==1.38.0
+torch==2.2.0
+numpy==1.26.4
+huggingface_hub==0.24.0
+pyarabic==0.6.15
+pyyaml==6.0.2
+
+# Install the package itself (directly from GitHub - change URL to match your repo)
+# git+https://github.com/YOUR_USERNAME/irab-tashkeel.git

@@ -1,0 +1,3 @@
+[console_scripts]
+irab-eval = irab_tashkeel.evaluation.eval_cli:main
+irab-train = irab_tashkeel.training.cli:main

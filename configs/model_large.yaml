@@ -1,0 +1,42 @@
+# Large config — 300M params. A100 (40GB) or better.
+# Target: 10-12 hours for 15 epochs. Expected DER: 2-4% (aim for SOTA).
+
+model:
+  hidden: 1024
+  n_heads: 16
+  n_layers: 20
+  max_len: 512
+  dropout: 0.1
+
+heads:
+  dropout: 0.1
+
+loss:
+  alpha_diac: 1.0
+  beta_irab: 0.7              # bump i'rab weight with more capacity
+  gamma_err: 0.3
+  label_smoothing: 0.1
+
+data:
+  tashkeela_n: 80000          # use more data with more capacity
+  qac_max_verses: null
+  i3rab_path: null
+  synthetic_per_type: 5000
+  data_dir: data
+
+training:
+  batch_size: 16              # memory pressure at 1024 hidden
+  learning_rate: 2.0e-4       # lower for larger model
+  weight_decay: 0.01
+  n_epochs: 15
+  warmup_steps: 2000
+  gradient_clip: 1.0
+  mixed_precision: bf16       # bf16 is more stable for larger models
+  num_workers: 4
+  seed: 42
+  log_every_n_steps: 100
+
+evaluation:
+  val_split: 0.05             # smaller val with more training data
+  eval_every_n_steps: 5000
+  early_stopping_patience: 3
