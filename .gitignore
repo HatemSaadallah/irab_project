@@ -1,2 +1,5 @@
 *.pt
 data/tashkeela/Tashkeela-arabic-diacritized-text-utf8-0.3.tar.bz2
+data/tashkeela/Tashkeela-arabic-diacritized-text-utf8-0.3/
+runs/
+data/cache/
