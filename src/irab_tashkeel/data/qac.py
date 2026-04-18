@@ -60,7 +60,7 @@ def parse_qac(path: Path) -> List[Dict]:
             if len(parts) < 4:
                 continue
             loc, form, tag, feat_str = parts[:4]
-            m = re.match(r"\((\d+):(\d+):(\d+):(\d+)\)", loc)
+            m = re.match(r"\(?(\d+):(\d+):(\d+):(\d+)\)?", loc)
             if not m:
                 continue
             ch, v, w, seg = (int(x) for x in m.groups())

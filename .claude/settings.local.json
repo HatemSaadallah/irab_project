@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/bin/python3:*)",
+      "Bash(lspci)",
+      "Bash(nvidia-smi)",
+      "Read(//proc/driver/nvidia/**)",
+      "Bash(dpkg -l)",
+      "Bash(find:*)",
+      "Bash(xargs ls:*)",
+      "Bash(MODEL_CKPT=runs/model_small/best.pt streamlit run app/app.py)",
+      "Bash(pip install:*)",
+      "Bash(.venv/bin/pip install:*)"
+    ]
+  }
+}
