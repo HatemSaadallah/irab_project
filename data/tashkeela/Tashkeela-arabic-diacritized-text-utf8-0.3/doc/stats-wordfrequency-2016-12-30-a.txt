@@ -1,0 +1,13 @@
+75 629 921 corpus2.txt
+1.1G ديس 30 11:54 corpus2.txt
+classical	74762008	98.85%
+MSA	867913	1.15%
+
+Result:\t corpus2.txt
+--- vocalized word count (repeated):\t 67287202 corpus2.txt.srt
+--- vocalized word count (unrepeated):\t 998538 corpus2.txt.voc.unq
+--- semivocalized word count (unrepeated):\t770702 corpus2.txt.semivoc.unq
+--- unvocalized word count (unrepeated):\t 486524 corpus2.txt.unvoc.unq
+
+
+

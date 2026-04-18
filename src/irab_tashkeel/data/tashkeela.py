@@ -52,7 +52,7 @@ def load_from_local_files(
     return out
 
 
-def load_from_huggingface(max_sentences: int = 30000, dataset_name: str = "Misraj/Sadeed_Tashkeela") -> List[str]:
+def load_from_huggingface(max_sentences: int = 30000, dataset_name: str = "community-datasets/tashkeela") -> List[str]:
     """Stream N sentences from a HuggingFace dataset.
 
     Returns a list of diacritized strings. Requires `datasets` and internet.

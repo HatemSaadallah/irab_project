@@ -1,0 +1,20 @@
+2017-02-03:
+	Puplish a paper about this corpus
+T. Zerrouki, A. Balla, Tashkeela: Novel corpus of Arabic vocalized texts, data for auto-diacritization systems
+Article in Data in Brief · February 2017
+DOI: 10.1016/j.dib.2017.01.011
+2016-12-30:
+	Add new texts
+	Add more modern texts
+	
+2015-05-25
+	- remove html and css tags from files headers
+	- add shamila book number and categories for books
+	- add new books
+	- extract new stats about books
+2014-07-04
+	- add version file
+19-07-2011
+	- first release
+	- Launch the project as Tashkeela
+	- Launch the http://aracorpus.e3rab.com

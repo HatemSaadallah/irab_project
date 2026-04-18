@@ -10,7 +10,12 @@
       "Bash(xargs ls:*)",
       "Bash(MODEL_CKPT=runs/model_small/best.pt streamlit run app/app.py)",
       "Bash(pip install:*)",
-      "Bash(.venv/bin/pip install:*)"
+      "Bash(.venv/bin/pip install:*)",
+      "WebSearch",
+      "WebFetch(domain:pypi.org)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:arramooz.sourceforge.net)",
+      "Bash(tar xjf:*)"
     ]
   }
 }

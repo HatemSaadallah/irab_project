@@ -1,0 +1,24 @@
+To any research, plean cite the following paper:
+  Taha Zerrouki , Amar Balla, Tashkeela: Novel corpus of Arabic vocalized texts, data for auto-diacritization systems, 2017 Data in Brief, Elseivier,   
+DOI:   http://dx.doi.org/10.1016/j.dib.2017.01.011
+
+# bibtex  format
+@article{Zerrouki2017,
+title = "Tashkeela: Novel corpus of Arabic vocalized texts, data for auto-diacritization systems ",
+journal = "Data in Brief ",
+volume = "",
+number = "",
+pages = " - ",
+year = "2017",
+note = "",
+issn = "2352-3409",
+doi = "http://dx.doi.org/10.1016/j.dib.2017.01.011",
+url = "//www.sciencedirect.com/science/article/pii/S2352340917300112",
+author = "Taha Zerrouki and Amar Balla",
+keywords = "Natural language processing",
+keywords = "Corpus",
+keywords = "Arabic language",
+keywords = "Diacritization ",
+abstract = "Abstract Arabic diacritics are often missed in Arabic scripts. This feature is a handicap for new learner to read َArabic, text to speech conversion systems, reading and semantic analysis of Arabic texts. The automatic diacritization systems are the best solution to handle this issue. But such automation needs resources as diactritized texts to train and evaluate such systems. In this paper, we describe our corpus of Arabic diacritized texts. This corpus is called Tashkeela. It can be used as a linguistic resource tool for natural language processing such as automatic diacritics systems, dis-ambiguity mechanism, features and data extraction. The corpus is freely available, it contains 75 million of fully vocalized words mainly 97 books from classical and modern Arabic language. The corpus is collected from manually vocalized texts using web crawling process. "
+}
+
