@@ -67,7 +67,9 @@ class Trainer:
         self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
 
-        if self.device.type == "cuda" and hasattr(torch, "compile"):
+        if self.device.type == "cuda" and torch.cuda.device_count() > 1:
+            self.model = torch.nn.DataParallel(self.model)
+        elif self.device.type == "cuda" and hasattr(torch, "compile"):
             self.model = torch.compile(self.model)
 
         # Optimizer
@@ -132,9 +134,10 @@ class Trainer:
     def save_checkpoint(self, name: str, extras: Optional[Dict] = None) -> Path:
         """Save model + optimizer + metadata."""
         path = self.output_dir / f"{name}.pt"
+        inner_model = self.model.module if hasattr(self.model, "module") else self.model
         payload = {
-            "state_dict": self.model.state_dict(),
-            "config": self.model.config.to_dict(),
+            "state_dict": inner_model.state_dict(),
+            "config": inner_model.config.to_dict(),
             "optimizer_state": self.optimizer.state_dict(),
             "step": self.step,
             "best_val_loss": self.best_val_loss,
