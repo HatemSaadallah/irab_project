@@ -15,7 +15,12 @@
       "WebFetch(domain:pypi.org)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:arramooz.sourceforge.net)",
-      "Bash(tar xjf:*)"
+      "Bash(tar xjf:*)",
+      "WebFetch(domain:learnopencv.com)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:perlod.com)",
+      "Bash(.venv/bin/pip show *)",
+      "Bash(.venv/bin/python -c \"from irab_tashkeel.training.cli import main; from irab_tashkeel.training.lightning_module import IrabLightningModule; print\\('Imports OK'\\)\")"
     ]
   }
 }

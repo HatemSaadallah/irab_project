@@ -3,21 +3,21 @@
 from __future__ import annotations
 
 import argparse
-import json
 import random
 from pathlib import Path
 from typing import Dict
 
 import numpy as np
+import pytorch_lightning as pl
 import torch
 import yaml
+from pytorch_lightning.callbacks import EarlyStopping
+from torch.utils.data import DataLoader
 
 from ..data.build_dataset import build_combined_dataset, load_examples, report, save_examples
-from ..models.full_model import FullModel, ModelConfig
 from ..models.labels import DIAC_LABELS, ERR_LABELS, IRAB_LABELS, VOCAB_SIZE
-from .dataset import MTLDataset
-from .losses import LossConfig, MultiTaskLoss
-from .trainer import Trainer, TrainingConfig
+from .dataset import MTLDataset, collate_fn
+from .lightning_module import IrabLightningModule, LegacyCheckpointCallback
 
 
 def load_yaml_config(path: Path | str) -> Dict:
@@ -33,9 +33,8 @@ def set_seeds(seed: int) -> None:
         torch.cuda.manual_seed_all(seed)
 
 
-def build_model_from_config(cfg: Dict) -> FullModel:
-    """Build a FullModel from a config dict (usually loaded from YAML)."""
-    model_cfg_dict = {
+def build_model_config_dict(cfg: Dict) -> Dict:
+    return {
         "encoder": {
             "vocab_size": VOCAB_SIZE,
             "hidden": cfg["model"].get("hidden", 768),
@@ -49,24 +48,20 @@ def build_model_from_config(cfg: Dict) -> FullModel:
         "n_err": cfg["heads"].get("n_err", len(ERR_LABELS)),
         "head_dropout": cfg["heads"].get("dropout", 0.1),
     }
-    return FullModel(ModelConfig.from_dict(model_cfg_dict))
 
 
 def main():
     parser = argparse.ArgumentParser(description="Train the i'rab + tashkeel model")
-    parser.add_argument("--config", type=str, required=True, help="Path to YAML config")
-    parser.add_argument("--output-dir", type=str, default=None,
-                       help="Checkpoint dir (default: runs/<config-name>)")
-    parser.add_argument("--resume", type=str, default=None,
-                       help="Path to a checkpoint to resume from")
-    parser.add_argument("--dataset-cache", type=str, default="data/cache/combined.pkl",
-                       help="Where to cache the combined dataset")
-    parser.add_argument("--force-rebuild", action="store_true",
-                       help="Re-build the dataset from scratch")
+    parser.add_argument("--config", type=str, required=True)
+    parser.add_argument("--output-dir", type=str, default=None)
+    parser.add_argument("--resume", type=str, default=None)
+    parser.add_argument("--dataset-cache", type=str, default="data/cache/combined.pkl")
+    parser.add_argument("--force-rebuild", action="store_true")
     args = parser.parse_args()
 
     cfg = load_yaml_config(args.config)
-    set_seeds(cfg.get("training", {}).get("seed", 42))
+    seed = cfg.get("training", {}).get("seed", 42)
+    pl.seed_everything(seed, workers=True)
 
     output_dir = Path(args.output_dir) if args.output_dir else Path("runs") / Path(args.config).stem
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -84,7 +79,7 @@ def main():
             qac_max_verses=data_cfg.get("qac_max_verses"),
             i3rab_path=Path(data_cfg["i3rab_path"]) if data_cfg.get("i3rab_path") else None,
             synthetic_per_type=data_cfg.get("synthetic_per_type", 2000),
-            seed=cfg.get("training", {}).get("seed", 42),
+            seed=seed,
             data_dir=Path(data_cfg.get("data_dir", "data")),
         )
         save_examples(all_examples, cache_path)
@@ -92,7 +87,6 @@ def main():
 
     report(all_examples)
 
-    # Split train/val
     val_split = cfg.get("evaluation", {}).get("val_split", 0.1)
     n_val = max(1, int(len(all_examples) * val_split))
     train_examples = all_examples[:-n_val]
@@ -103,39 +97,83 @@ def main():
     train_ds = MTLDataset(train_examples, max_len=max_len)
     val_ds = MTLDataset(val_examples, max_len=max_len)
 
-    # --- Model ---
-    model = build_model_from_config(cfg)
-    print(f"Model: {model.n_params() / 1e6:.2f}M params")
-    print(f"  encoder: hidden={model.config.encoder.hidden}, layers={model.config.encoder.n_layers}")
+    tr_cfg = cfg.get("training", {})
+    train_loader = DataLoader(
+        train_ds, batch_size=tr_cfg.get("batch_size", 32), shuffle=True,
+        collate_fn=collate_fn, num_workers=tr_cfg.get("num_workers", 4),
+        pin_memory=True, persistent_workers=tr_cfg.get("num_workers", 4) > 0,
+    )
+    val_loader = DataLoader(
+        val_ds, batch_size=tr_cfg.get("batch_size", 32), shuffle=False,
+        collate_fn=collate_fn, num_workers=tr_cfg.get("num_workers", 4),
+        pin_memory=True, persistent_workers=tr_cfg.get("num_workers", 4) > 0,
+    )
+
+    # --- Lightning module ---
+    model_config = build_model_config_dict(cfg)
+    loss_config = {k: v for k, v in cfg.get("loss", {}).items()
+                   if k in {"alpha_diac", "beta_irab", "gamma_err", "label_smoothing"}}
+
+    pl_module = IrabLightningModule(
+        model_config=model_config,
+        loss_config=loss_config,
+        learning_rate=tr_cfg.get("learning_rate", 3.0e-4),
+        weight_decay=tr_cfg.get("weight_decay", 0.01),
+        warmup_steps=tr_cfg.get("warmup_steps", 1000),
+    )
+    print(f"Model: {pl_module.model.n_params() / 1e6:.2f}M params")
+    print(f"  encoder: hidden={pl_module.model.config.encoder.hidden}, "
+          f"layers={pl_module.model.config.encoder.n_layers}")
 
     if args.resume:
-        print(f"Resuming from {args.resume}")
+        print(f"Loading weights from {args.resume}")
         ckpt = torch.load(args.resume, map_location="cpu", weights_only=False)
-        model.load_state_dict(ckpt["state_dict"])
+        pl_module.model.load_state_dict(ckpt["state_dict"])
 
-    # --- Loss + trainer ---
-    loss_cfg = LossConfig(**{k: v for k, v in cfg.get("loss", {}).items() if k in LossConfig.__annotations__})
-    loss_fn = MultiTaskLoss(loss_cfg)
-
-    tr_cfg_dict = cfg.get("training", {})
-    training_config = TrainingConfig(
-        **{k: v for k, v in tr_cfg_dict.items() if k in TrainingConfig.__annotations__}
-    )
+    # --- Callbacks ---
     eval_cfg = cfg.get("evaluation", {})
-    training_config.eval_every_n_steps = eval_cfg.get("eval_every_n_steps", training_config.eval_every_n_steps)
-    training_config.early_stopping_patience = eval_cfg.get("early_stopping_patience", training_config.early_stopping_patience)
+    callbacks = [
+        LegacyCheckpointCallback(output_dir),
+        EarlyStopping(
+            monitor="val/total",
+            patience=eval_cfg.get("early_stopping_patience", 3),
+            mode="min",
+        ),
+    ]
 
-    trainer = Trainer(model=model, loss_fn=loss_fn, config=training_config, output_dir=output_dir)
+    # --- Trainer ---
+    precision_map = {"fp16": "16-mixed", "bf16": "bf16-mixed", "none": "32-true"}
+    precision = precision_map.get(tr_cfg.get("mixed_precision", "fp16"), "16-mixed")
+
+    n_gpus = torch.cuda.device_count()
+    accelerator = "gpu" if n_gpus > 0 else "cpu"
+    devices = n_gpus if n_gpus > 0 else 1
+    strategy = "ddp" if n_gpus > 1 else "auto"
+
+    print(f"Trainer: accelerator={accelerator}, devices={devices}, strategy={strategy}, precision={precision}")
+
+    trainer = pl.Trainer(
+        max_epochs=tr_cfg.get("n_epochs", 15),
+        accelerator=accelerator,
+        devices=devices,
+        strategy=strategy,
+        precision=precision,
+        gradient_clip_val=tr_cfg.get("gradient_clip", 1.0),
+        callbacks=callbacks,
+        log_every_n_steps=tr_cfg.get("log_every_n_steps", 50),
+        default_root_dir=str(output_dir),
+        enable_progress_bar=True,
+    )
 
     # Snapshot config
     with open(output_dir / "config.yaml", "w", encoding="utf-8") as f:
         yaml.dump(cfg, f, allow_unicode=True)
 
-    # Train
-    result = trainer.train(train_ds, val_ds)
-    print("\nTraining complete.")
-    print(f"Best val loss: {result['best_val_loss']:.4f}")
-    print(f"Checkpoints at: {output_dir}")
+    trainer.fit(pl_module, train_dataloaders=train_loader, val_dataloaders=val_loader)
+
+    if trainer.is_global_zero:
+        print("\nTraining complete.")
+        print(f"Checkpoints at: {output_dir}")
 
 
 if __name__ == "__main__":
