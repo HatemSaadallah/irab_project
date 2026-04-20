@@ -52,7 +52,7 @@ class CharTransformer(nn.Module):
             batch_first=True,
             norm_first=True,  # pre-norm is more stable
         )
-        self.encoder = nn.TransformerEncoder(layer, num_layers=config.n_layers)
+        self.encoder = nn.TransformerEncoder(layer, num_layers=config.n_layers, enable_nested_tensor=False)
         self.norm_out = nn.LayerNorm(config.hidden)
 
         # Init — small std for stable training
