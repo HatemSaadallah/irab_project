@@ -23,6 +23,7 @@ dependencies = [
     "tensorboard>=2.10",
     "scikit-learn>=1.0",
     "pytorch-lightning>=2.0",
+    "sentencepiece>=0.2.0",
 ]
 
 [project.optional-dependencies]

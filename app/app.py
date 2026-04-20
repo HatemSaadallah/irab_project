@@ -188,12 +188,22 @@ if st.button("Diacritize + analyze", type="primary") and user_input.strip():
                 """
                 if show_en:
                     html += f"<div style='color:#888; font-size:11px; direction:ltr'>{w['role_en']}</div>"
+                irab_text = w.get("irab_text", "")
+                if irab_text:
+                    html += (
+                        "<div style=\"margin-top:10px; padding:8px 6px; "
+                        "background:rgba(0,0,0,0.04); border-radius:6px; "
+                        "font-family:'Noto Naskh Arabic',serif; font-size:14px; "
+                        "color:#222; line-height:1.6\">"
+                        f"{irab_text}</div>"
+                    )
                 if show_confidence:
-                    html += f"""
-                    <div style="margin-top:8px; font-size:10px; color:#666; direction:ltr">
-                      diac {w['diac_confidence']*100:.0f}% · irab {w['irab_confidence']*100:.0f}%
-                    </div>
-                    """
+                    html += (
+                        "<div style=\"margin-top:8px; font-size:10px; "
+                        "color:#666; direction:ltr\">"
+                        f"diac {w['diac_confidence']*100:.0f}% · "
+                        f"irab {w['irab_confidence']*100:.0f}%</div>"
+                    )
                 if low_conf:
                     html += "<div style='color:#c44; font-size:10px; margin-top:4px'>⚠ low confidence</div>"
                 html += "</div>"

@@ -11,9 +11,21 @@ model:
 heads:
   dropout: 0.1
 
+irab_decoder:
+  hidden: 256
+  n_heads: 4
+  n_layers: 3
+  max_target_len: 64
+  dropout: 0.1
+
+irab_tokenizer:
+  vocab_size: 5000
+  model_path: data/irab_spm.model
+
 loss:
   alpha_diac: 1.0
-  beta_irab: 0.5
+  beta_irab: 0.1          # auxiliary coarse classification (down-weighted)
+  delta_irab_seq: 0.5     # main per-word seq2seq objective
   gamma_err: 0.3
   label_smoothing: 0.1
 

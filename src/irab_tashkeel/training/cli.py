@@ -15,6 +15,7 @@ from pytorch_lightning.callbacks import EarlyStopping
 from torch.utils.data import DataLoader
 
 from ..data.build_dataset import build_combined_dataset, load_examples, report, save_examples
+from ..models.irab_tokenizer import IrabTokenizer, train_from_examples
 from ..models.labels import DIAC_LABELS, ERR_LABELS, IRAB_LABELS, VOCAB_SIZE
 from .dataset import MTLDataset, collate_fn
 from .lightning_module import IrabLightningModule, LegacyCheckpointCallback
@@ -33,8 +34,8 @@ def set_seeds(seed: int) -> None:
         torch.cuda.manual_seed_all(seed)
 
 
-def build_model_config_dict(cfg: Dict) -> Dict:
-    return {
+def build_model_config_dict(cfg: Dict, irab_vocab_size: int) -> Dict:
+    out = {
         "encoder": {
             "vocab_size": VOCAB_SIZE,
             "hidden": cfg["model"].get("hidden", 768),
@@ -48,6 +49,18 @@ def build_model_config_dict(cfg: Dict) -> Dict:
         "n_err": cfg["heads"].get("n_err", len(ERR_LABELS)),
         "head_dropout": cfg["heads"].get("dropout", 0.1),
     }
+    dec_cfg = cfg.get("irab_decoder")
+    if dec_cfg:
+        out["irab_decoder"] = {
+            "encoder_hidden": cfg["model"].get("hidden", 768),
+            "vocab_size": irab_vocab_size,
+            "hidden": dec_cfg.get("hidden", 256),
+            "n_heads": dec_cfg.get("n_heads", 4),
+            "n_layers": dec_cfg.get("n_layers", 3),
+            "max_target_len": dec_cfg.get("max_target_len", 64),
+            "dropout": dec_cfg.get("dropout", 0.1),
+        }
+    return out
 
 
 def main():
@@ -93,9 +106,35 @@ def main():
     val_examples = all_examples[-n_val:]
     print(f"Train: {len(train_examples)}  Val: {len(val_examples)}")
 
+    # --- I'rab BPE tokenizer (train if missing) ---
+    tok_cfg = cfg.get("irab_tokenizer", {})
+    irab_tokenizer = None
+    irab_vocab_size = 0
+    if cfg.get("irab_decoder"):
+        tok_path = Path(tok_cfg.get("model_path", "data/irab_spm.model"))
+        if not args.force_rebuild and tok_path.exists():
+            print(f"Loading i'rab tokenizer from {tok_path}")
+            irab_tokenizer = IrabTokenizer.load(tok_path)
+        else:
+            print(f"Training i'rab tokenizer (vocab={tok_cfg.get('vocab_size', 5000)}) …")
+            irab_tokenizer = train_from_examples(
+                train_examples,
+                model_path=tok_path,
+                vocab_size=tok_cfg.get("vocab_size", 5000),
+            )
+            print(f"Saved tokenizer to {tok_path}")
+        irab_vocab_size = irab_tokenizer.vocab_size
+
     max_len = cfg["model"].get("max_len", 512)
-    train_ds = MTLDataset(train_examples, max_len=max_len)
-    val_ds = MTLDataset(val_examples, max_len=max_len)
+    max_target_len = (cfg.get("irab_decoder") or {}).get("max_target_len", 64)
+    train_ds = MTLDataset(
+        train_examples, max_len=max_len,
+        irab_tokenizer=irab_tokenizer, max_irab_target_len=max_target_len,
+    )
+    val_ds = MTLDataset(
+        val_examples, max_len=max_len,
+        irab_tokenizer=irab_tokenizer, max_irab_target_len=max_target_len,
+    )
 
     tr_cfg = cfg.get("training", {})
     train_loader = DataLoader(
@@ -110,9 +149,11 @@ def main():
     )
 
     # --- Lightning module ---
-    model_config = build_model_config_dict(cfg)
-    loss_config = {k: v for k, v in cfg.get("loss", {}).items()
-                   if k in {"alpha_diac", "beta_irab", "gamma_err", "label_smoothing"}}
+    model_config = build_model_config_dict(cfg, irab_vocab_size=irab_vocab_size)
+    loss_config = {
+        k: v for k, v in cfg.get("loss", {}).items()
+        if k in {"alpha_diac", "beta_irab", "delta_irab_seq", "gamma_err", "label_smoothing"}
+    }
 
     pl_module = IrabLightningModule(
         model_config=model_config,

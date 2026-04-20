@@ -12,9 +12,21 @@ heads:
   # n_diac, n_irab, n_err are pulled from labels.py automatically
   dropout: 0.1
 
+irab_decoder:
+  hidden: 192
+  n_heads: 4
+  n_layers: 2
+  max_target_len: 48
+  dropout: 0.1
+
+irab_tokenizer:
+  vocab_size: 2000
+  model_path: data/irab_spm.model
+
 loss:
   alpha_diac: 1.0
-  beta_irab: 0.5
+  beta_irab: 0.1          # auxiliary coarse classification (down-weighted)
+  delta_irab_seq: 0.5     # main per-word seq2seq objective
   gamma_err: 0.3
   label_smoothing: 0.1
 

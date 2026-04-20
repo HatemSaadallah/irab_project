@@ -20,7 +20,12 @@
       "WebFetch(domain:medium.com)",
       "WebFetch(domain:perlod.com)",
       "Bash(.venv/bin/pip show *)",
-      "Bash(.venv/bin/python -c \"from irab_tashkeel.training.cli import main; from irab_tashkeel.training.lightning_module import IrabLightningModule; print\\('Imports OK'\\)\")"
+      "Bash(.venv/bin/python -c \"from irab_tashkeel.training.cli import main; from irab_tashkeel.training.lightning_module import IrabLightningModule; print\\('Imports OK'\\)\")",
+      "WebFetch(domain:surahquran.com)",
+      "WebFetch(domain:www.i3rab.com)",
+      "WebFetch(domain:dorar.net)",
+      "WebFetch(domain:mawdoo3.com)",
+      "WebFetch(domain:ww1.i3rab.com)"
     ]
   }
 }

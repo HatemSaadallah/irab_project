@@ -17,8 +17,10 @@ class MTLExample:
         diac_labels: Per-character diacritic class IDs (length = len(bare_text)).
         mask_diac: If True, train the diacritization head on this example.
         word_offsets: List of (start_char_idx, end_char_idx) for each word.
-        irab_labels: Per-word i'rab class ID (length = len(word_offsets)).
-        mask_irab: If True, train the i'rab head.
+        irab_labels: Per-word coarse i'rab class ID (length = len(word_offsets)).
+        irab_targets: Per-word detailed Arabic i'rab string (length = len(word_offsets)).
+                      Empty string "" means no per-word seq2seq supervision for that word.
+        mask_irab: If True, train the i'rab heads (classification + seq2seq).
         err_labels: Per-character BIO error class (length = len(bare_text)).
         mask_err: If True, train the error detection head.
         source: Data source tag, e.g. "tashkeela", "qac", "i3rab", "synth_hamza".
@@ -35,6 +37,7 @@ class MTLExample:
     mask_err: bool
     source: str
     sent_id: Optional[str] = None
+    irab_targets: List[str] = field(default_factory=list)
 
     def __post_init__(self):
         # Validate lengths to catch alignment bugs early.
@@ -53,6 +56,15 @@ class MTLExample:
                 f"err_labels length {len(self.err_labels)} != text length "
                 f"{len(self.bare_text)} for {self.sent_id}"
             )
+        # irab_targets is optional. If provided, it must align with word_offsets.
+        if self.irab_targets:
+            assert len(self.irab_targets) == len(self.word_offsets), (
+                f"irab_targets length {len(self.irab_targets)} != word count "
+                f"{len(self.word_offsets)} for {self.sent_id}"
+            )
+        else:
+            # Default to empty strings so downstream code can index uniformly.
+            self.irab_targets = [""] * len(self.word_offsets)
 
 
 @dataclass

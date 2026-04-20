@@ -35,17 +35,24 @@ class IrabLightningModule(pl.LightningModule):
         self.weight_decay = weight_decay
         self.warmup_steps = warmup_steps
 
-    def forward(self, char_ids, attention_mask, word_offsets):
-        return self.model(char_ids, attention_mask, word_offsets)
+    def forward(self, char_ids, attention_mask, word_offsets, irab_target_ids=None):
+        return self.model(char_ids, attention_mask, word_offsets, irab_target_ids)
 
     def _step(self, batch, stage: str):
-        out = self.model(batch["char_ids"], batch["attention_mask"], batch["word_offsets"])
+        out = self.model(
+            batch["char_ids"],
+            batch["attention_mask"],
+            batch["word_offsets"],
+            batch.get("irab_target_ids"),
+        )
         losses = self.loss_fn(out, batch)
+        bs = batch["char_ids"].size(0)
         for k, v in losses.items():
             self.log(
                 f"{stage}/{k}", v,
                 on_step=(stage == "train"), on_epoch=True,
                 prog_bar=(k == "total"), sync_dist=True,
+                batch_size=bs,
             )
         return losses["total"]
 

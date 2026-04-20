@@ -18,6 +18,7 @@ import torch
 
 from ..data.schema import PredictionResult
 from ..models.full_model import FullModel
+from ..models.irab_tokenizer import IrabTokenizer
 from ..models.labels import (
     DIAC_LABELS, ERR_LABELS, IRAB_LABELS,
 )
@@ -37,6 +38,7 @@ class Predictor:
         model: FullModel,
         device: Optional[torch.device] = None,
         confidence_threshold: float = 0.6,
+        irab_tokenizer: Optional[IrabTokenizer] = None,
     ):
         self.model = model
         self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -44,6 +46,7 @@ class Predictor:
         self.model.eval()
         self.confidence_threshold = confidence_threshold
         self.max_len = model.config.encoder.max_len
+        self.irab_tokenizer = irab_tokenizer
 
     @classmethod
     def from_checkpoint(
@@ -51,10 +54,24 @@ class Predictor:
         path: Union[str, Path],
         device: Optional[torch.device] = None,
         confidence_threshold: float = 0.6,
+        irab_tokenizer_path: Optional[Union[str, Path]] = "data/irab_spm.model",
     ) -> "Predictor":
-        """Load a Predictor from a model checkpoint."""
+        """Load a Predictor from a model checkpoint.
+
+        If `irab_tokenizer_path` exists and the model has an i'rab decoder,
+        the tokenizer is loaded automatically.
+        """
         model = FullModel.load(path, map_location="cpu")
-        return cls(model, device=device, confidence_threshold=confidence_threshold)
+        tok = None
+        if model.irab_decoder is not None and irab_tokenizer_path:
+            tok_path = Path(irab_tokenizer_path)
+            if tok_path.exists():
+                tok = IrabTokenizer.load(tok_path)
+        return cls(
+            model, device=device,
+            confidence_threshold=confidence_threshold,
+            irab_tokenizer=tok,
+        )
 
     @torch.no_grad()
     def _run_model(self, bare_text: str) -> Dict:
@@ -77,9 +94,16 @@ class Predictor:
         err_probs = torch.softmax(out["err"][0], dim=-1)
         err_pred = err_probs.argmax(dim=-1).cpu().tolist()
 
+        irab_texts: List[str] = []
+        if self.model.irab_decoder is not None and self.irab_tokenizer is not None:
+            generated = self.model.generate_irab(char_ids_t, mask_t, word_offsets)
+            for token_ids in generated[0]:
+                irab_texts.append(self.irab_tokenizer.decode(token_ids))
+
         return {
             "diac_pred": diac_pred, "diac_conf": diac_conf,
             "irab_pred": irab_pred, "irab_conf": irab_conf,
+            "irab_texts": irab_texts,
             "err_pred": err_pred,
             "word_offsets": word_offsets[0],
         }
@@ -178,6 +202,8 @@ class Predictor:
             char_confs = [pred["diac_conf"][i] for i in range(s, min(e, len(pred["diac_conf"])))]
             diac_conf = float(np.mean(char_confs)) if char_confs else 0.0
 
+            irab_text = pred["irab_texts"][wi] if wi < len(pred["irab_texts"]) else ""
+
             words_info.append({
                 "index": wi,
                 "surface": word_surface,
@@ -185,6 +211,7 @@ class Predictor:
                 "role": role,
                 "role_ar": role_to_ar(role),
                 "role_en": role_to_en(role),
+                "irab_text": irab_text,
                 "diac_confidence": diac_conf,
                 "irab_confidence": float(irab_conf),
                 "low_confidence": float(irab_conf) < self.confidence_threshold,
