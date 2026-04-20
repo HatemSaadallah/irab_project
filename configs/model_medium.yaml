@@ -18,7 +18,7 @@ loss:
   label_smoothing: 0.1
 
 data:
-  tashkeela_n: 90000
+  tashkeela_n: 50000
   qac_max_verses: null
   i3rab_path: null            # set to data/i3rab/i3rab.conllu once you have access
   synthetic_per_type: 2000
