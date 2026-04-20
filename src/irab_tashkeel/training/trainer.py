@@ -67,10 +67,16 @@ class Trainer:
         self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
 
-        if self.device.type == "cuda" and torch.cuda.device_count() > 1:
-            self.model = torch.nn.DataParallel(self.model)
-        elif self.device.type == "cuda" and hasattr(torch, "compile"):
-            self.model = torch.compile(self.model)
+        if self.device.type == "cuda":
+            n_gpus = torch.cuda.device_count()
+            print(f"CUDA devices visible: {n_gpus}")
+            for i in range(n_gpus):
+                print(f"  GPU {i}: {torch.cuda.get_device_name(i)}")
+            if n_gpus > 1:
+                print(f"Using DataParallel across {n_gpus} GPUs")
+                self.model = torch.nn.DataParallel(self.model)
+            elif hasattr(torch, "compile"):
+                self.model = torch.compile(self.model)
 
         # Optimizer
         self.optimizer = torch.optim.AdamW(
