@@ -18,14 +18,14 @@ loss:
   label_smoothing: 0.1
 
 data:
-  tashkeela_n: 30000
+  tashkeela_n: 90000
   qac_max_verses: null
   i3rab_path: null            # set to data/i3rab/i3rab.conllu once you have access
   synthetic_per_type: 2000
   data_dir: data
 
 training:
-  batch_size: 8
+  batch_size: 32
   learning_rate: 3.0e-4
   weight_decay: 0.01
   n_epochs: 15
