@@ -180,8 +180,8 @@ if st.button("Diacritize + analyze", type="primary") and user_input.strip():
 
                 html = f"""
                 <div style="background:{bg}; padding:12px; border-radius:8px;
-                            border:1px solid {border}; direction:rtl; text-align:center; margin-bottom:8px">
-                  <div style="font-family:'Noto Naskh Arabic',serif; font-size:28px; font-weight:500">
+                            border:1px solid {border}; direction:rtl; text-align:center; margin-bottom:8px; color:#111">
+                  <div style="font-family:'Noto Naskh Arabic',serif; font-size:28px; font-weight:500; color:#111">
                     {w['diacritized']}
                   </div>
                   <div style="color:#444; font-size:14px; margin-top:6px">{w['role_ar']}</div>

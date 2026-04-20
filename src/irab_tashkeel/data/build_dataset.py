@@ -16,6 +16,7 @@ from .qac import download_qac, load_qac_examples
 from .schema import MTLExample
 from .synthetic import generate_synthetic_examples
 from .tashkeela import load_tashkeela_examples, load_tashkeela_sentences
+from .yarob import load_yarob_examples
 
 
 def build_combined_dataset(
@@ -27,8 +28,9 @@ def build_combined_dataset(
     tashkeela_source: Optional[Path] = None,
     use_huggingface: bool = True,
     data_dir: Path = Path("data"),
+    include_yarob: bool = True,
 ) -> List[MTLExample]:
-    """Load + combine all four data sources.
+    """Load + combine all data sources.
 
     Returns a shuffled list of MTLExample ready for training.
     """
@@ -56,6 +58,16 @@ def build_combined_dataset(
     # --- I3rab ---
     i3rab_examples = load_i3rab_examples(i3rab_path)
     all_examples.extend(i3rab_examples)
+
+    # --- Yarob (manually curated per-word i'rab strings) ---
+    if include_yarob:
+        try:
+            yarob_examples = load_yarob_examples(data_dir / "yarob_src")
+            all_examples.extend(yarob_examples)
+            if yarob_examples:
+                print(f"  yarob: {len(yarob_examples)} examples")
+        except Exception as e:
+            print(f"⚠ Yarob not loaded: {e}")
 
     # --- Synthetic errors ---
     # Collect gold diacritized sentences (QAC is our cleanest source)
