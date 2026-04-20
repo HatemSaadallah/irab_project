@@ -148,7 +148,7 @@ def main():
     n_gpus = torch.cuda.device_count()
     accelerator = "gpu" if n_gpus > 0 else "cpu"
     devices = n_gpus if n_gpus > 0 else 1
-    strategy = "ddp" if n_gpus > 1 else "auto"
+    strategy = "ddp_find_unused_parameters_true" if n_gpus > 1 else "auto"
 
     print(f"Trainer: accelerator={accelerator}, devices={devices}, strategy={strategy}, precision={precision}")
 
