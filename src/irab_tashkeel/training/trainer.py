@@ -67,6 +67,9 @@ class Trainer:
         self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
 
+        if self.device.type == "cuda" and hasattr(torch, "compile"):
+            self.model = torch.compile(self.model)
+
         # Optimizer
         self.optimizer = torch.optim.AdamW(
             self.model.parameters(),

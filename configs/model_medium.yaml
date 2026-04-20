@@ -25,13 +25,13 @@ data:
   data_dir: data
 
 training:
-  batch_size: 32
+  batch_size: 64
   learning_rate: 3.0e-4
   weight_decay: 0.01
   n_epochs: 15
   warmup_steps: 1000
   gradient_clip: 1.0
-  mixed_precision: fp16
+  mixed_precision: bf16
   num_workers: 4
   seed: 42
   log_every_n_steps: 50
