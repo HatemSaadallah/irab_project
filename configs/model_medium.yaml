@@ -5,7 +5,7 @@ model:
   hidden: 768
   n_heads: 12
   n_layers: 12
-  max_len: 512
+  max_len: 256
   dropout: 0.1
 
 heads:
